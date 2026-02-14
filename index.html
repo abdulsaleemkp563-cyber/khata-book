@@ -1,1 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KHATA PRO MAX | Premium Ledger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        body.dark-mode { background: #0f172a; color: #f8fafc; }
+        body.light-mode { background: #f8fafc; color: #0f172a; }
 
+        #accessDenied, #lockScreen { 
+            position: fixed; inset: 0; background: #0f172a; z-index: 9999; 
+            display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+        }
+
+        .app { max-width: 480px; margin: 0 auto; min-height: 100vh; display: none; flex-direction: column; }
+        
+        /* PIN dots */
+        .pin-dot { width: 15px; height: 15px; border-radius: 50%; border: 2px solid #3b82f6; margin: 0 10px; }
+        .pin-dot.filled { background: #3b82f6; }
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 40px; }
+        .key { width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600; cursor: pointer; }
+
+        .dashboard-card { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 35px 20px; border-radius: 0 0 40px 40px; text-align: center; color: white; margin-bottom: 25px; }
+        .cust-card { display: flex; align-items: center; padding: 15px; border-radius: 20px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
+        .dark-mode .cust-card { background: #1e293b; }
+        .light-mode .cust-card { background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: flex-end; z-index: 1000; backdrop-filter: blur(5px); }
+        .modal { width: 100%; max-width: 480px; padding: 30px; border-radius: 40px 40px 0 0; background: #1e293b; color: white; transform: translateY(100%); transition: 0.3s; }
+        .light-mode .modal { background: white; color: black; }
+        .modal.active { transform: translateY(0); }
+
+        .input-field { width: 100%; padding: 15px; border-radius: 15px; border: 1px solid rgba(128,128,128,0.2); background: rgba(128,128,128,0.05); color: inherit; outline: none; margin-bottom: 15px; }
+
+        @media print {
+            body { background: white !important; color: black !important; }
+            .no-print { display: none !important; }
+            .app { display: block !important; max-width: 100% !important; }
+            .dashboard-card { background: none !important; color: black !important; box-shadow: none !important; border-bottom: 2px solid #eee; }
+            .balance-amount { color: black !important; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+
+    <div id="accessDenied">
+        <i class="fa-solid fa-user-slash text-6xl text-red-500 mb-6"></i>
+        <h1 class="text-2xl font-bold">Access Revoked</h1>
+        <p id="deniedMsg" class="opacity-60 px-10 mt-4">ഈ ഐഡി ബ്ലോക്ക് ചെയ്തിരിക്കുന്നു. അഡ്മിനെ ബന്ധപ്പെടുക.</p>
+    </div>
+
+    <div id="lockScreen">
+        <div class="mb-8"><h2 id="lockStatus" class="text-xl font-bold">Secure Login</h2></div>
+        <div class="flex mb-10"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
+        <div class="keypad">
+            <div class="key" onclick="pressKey('1')">1</div><div class="key" onclick="pressKey('2')">2</div><div class="key" onclick="pressKey('3')">3</div>
+            <div class="key" onclick="pressKey('4')">4</div><div class="key" onclick="pressKey('5')">5</div><div class="key" onclick="pressKey('6')">6</div>
+            <div class="key" onclick="pressKey('7')">7</div><div class="key" onclick="pressKey('8')">8</div><div class="key" onclick="pressKey('9')">9</div>
+            <div class="key" style="opacity:0.5" onclick="clearPin()">C</div><div class="key" onclick="pressKey('0')">0</div><div class="key" onclick="exportJSON()"><i class="fa-solid fa-download"></i></div>
+        </div>
+    </div>
+
+    <div class="app" id="mainApp">
+        <div class="p-6 flex justify-between items-center no-print">
+            <div class="flex items-center gap-4">
+                <button id="backBtn" onclick="goHome()" class="hidden text-xl"><i class="fa-solid fa-arrow-left"></i></button>
+                <h1 id="pageTitle" class="text-xl font-extrabold uppercase">KHATA PRO</h1>
+            </div>
+            <div class="flex gap-5 items-center">
+                <button onclick="toggleTheme()"><i id="themeIcon" class="fa-solid fa-moon text-xl"></i></button>
+                <button onclick="openAdmin()"><i class="fa-solid fa-gear text-xl"></i></button>
+            </div>
+        </div>
+
+        <div id="mainContent" class="flex-1 overflow-y-auto"></div>
+        <div id="footerActions" class="no-print"></div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+        <div class="modal" id="modalBox" onclick="event.stopPropagation()"></div>
+    </div>
+
+    <script>
+        // --- ADMIN: ബ്ലോക്ക് ചെയ്യേണ്ടവരുടെ പേര് ഇവിടെ ഇടാം ---
+        const BLACKLISTED_USERS = ["shibu_blocked"]; 
+
+        const STORAGE_ID = 'KHATA_MAX_V1';
+        let db = JSON.parse(localStorage.getItem(STORAGE_ID)) || { customers: [], trans: [], darkMode: true, pin: null, shopName: "MY BUSINESS" };
+        let activeCid = null;
+        let searchQuery = "";
+        let currentPinInput = "";
+
+        // 1. Initial Checks
+        function checkAccess() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = urlParams.get('id');
+            if (!userId) { 
+                document.getElementById('accessDenied').style.display = 'flex';
+                document.getElementById('deniedMsg').innerText = "ഈ ആപ്പ് ഉപയോഗിക്കാൻ ലിങ്കിന്റെ അവസാനം ?id=yourname എന്ന് ചേർക്കണം.";
+                return;
+            }
+            if (BLACKLISTED_USERS.includes(userId.toLowerCase())) {
+                document.getElementById('accessDenied').style.display = 'flex';
+                return;
+            }
+            document.getElementById('lockScreen').style.display = 'flex';
+            applyTheme();
+        }
+
+        // 2. PIN System
+        function pressKey(num) {
+            if (currentPinInput.length < 4) {
+                currentPinInput += num; updateDots();
+                if (currentPinInput.length === 4) setTimeout(validatePin, 200);
+            }
+        }
+        function updateDots() { document.querySelectorAll('.pin-dot').forEach((d, i) => d.classList.toggle('filled', i < currentPinInput.length)); }
+        function clearPin() { currentPinInput = ""; updateDots(); }
+        function validatePin() {
+            if (!db.pin) { db.pin = currentPinInput; saveDB(); unlock(); }
+            else if (currentPinInput === db.pin) unlock();
+            else { alert("തെറ്റായ പിൻ!"); clearPin(); }
+        }
+        function unlock() { document.getElementById('lockScreen').style.display = 'none'; document.getElementById('mainApp').style.display = 'flex'; render(); }
+
+        // 3. Theme & Core
+        function applyTheme() {
+            document.body.className = db.darkMode ? 'dark-mode' : 'light-mode';
+            document.getElementById('themeIcon').className = db.darkMode ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        }
+        function toggleTheme() { db.darkMode = !db.darkMode; applyTheme(); saveDB(); }
+        function saveDB() { localStorage.setItem(STORAGE_ID, JSON.stringify(db)); render(); }
+        function render() { activeCid ? renderDetails() : renderHome(); }
+
+        function renderHome() {
+            activeCid = null;
+            document.getElementById('backBtn').classList.add('hidden');
+            document.getElementById('pageTitle').innerText = db.shopName;
+            let gave = 0, got = 0;
+            db.trans.forEach(t => { if(t.type === 'GAVE') gave += t.amt; else got += t.amt; });
+            
+            document.getElementById('mainContent').innerHTML = `
+                <div class="dashboard-card">
+                    <div class="text-xs font-bold opacity-70 uppercase tracking-widest">Global Balance</div>
+                    <div class="text-5xl font-extrabold my-4">₹${(gave - got).toLocaleString()}</div>
+                    <div class="flex justify-around bg-black/20 p-4 rounded-3xl mt-4">
+                        <div><p class="text-[10px] opacity-60">GAVE</p><p class="font-bold text-red-200">₹${gave}</p></div>
+                        <div class="border-r border-white/10"></div>
+                        <div><p class="text-[10px] opacity-60">GOT</p><p class="font-bold text-green-200">₹${got}</p></div>
+                    </div>
+                </div>
+                <div class="px-6 no-print"><input type="text" class="input-field" placeholder="🔍 Search Customer..." oninput="searchQuery=this.value; renderCustList()"></div>
+                <div id="custList" class="px-6 pb-24"></div>
+                <button class="fixed bottom-8 right-8 w-16 h-16 bg-blue-600 rounded-2xl text-white text-2xl shadow-xl no-print" onclick="openCustModal()"><i class="fa-solid fa-plus"></i></button>
+            `;
+            renderCustList();
+        }
+
+        function renderCustList() {
+            let filtered = db.customers.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
+            let html = '';
+            filtered.forEach(c => {
+                let bal = 0;
+                db.trans.filter(t => t.cid === c.id).forEach(t => bal += (t.type === 'GAVE' ? t.amt : -t.amt));
+                html += `<div class="cust-card" onclick="viewCust(${c.id})"><div class="h-12 w-12 bg-blue-500 rounded-xl flex items-center justify-center font-bold text-white mr-4">${c.name[0]}</div><div class="flex-1 font-bold">${c.name}</div><div class="text-right font-black ${bal >= 0 ? 'text-red-500' : 'text-green-500'}">₹${Math.abs(bal)}</div></div>`;
+            });
+            document.getElementById('custList').innerHTML = html || '<p class="text-center opacity-30 mt-10">കസ്റ്റമേഴ്സ് ആരും ഇല്ല!</p>';
+        }
+
+        function viewCust(id) { activeCid = id; render(); }
+        function goHome() { activeCid = null; render(); }
+
+        function renderDetails() {
+            const cust = db.customers.find(c => c.id === activeCid);
+            document.getElementById('backBtn').classList.remove('hidden');
+            document.getElementById('pageTitle').innerText = cust.name;
+            let raw = db.trans.filter(t => t.cid === activeCid);
+            let bal = 0; raw.forEach(t => bal += (t.type === 'GAVE' ? t.amt : -t.amt));
+
+            document.getElementById('mainContent').innerHTML = `
+                <div class="dashboard-card">
+                    <div class="text-4xl font-black">₹${Math.abs(bal)}</div>
+                    <p class="text-xs mt-2 opacity-70">${bal >= 0 ? 'You will give' : 'You will get'}</p>
+                    <div class="flex justify-center gap-3 mt-6 no-print">
+                        <button class="bg-white/20 px-6 py-2 rounded-xl text-xs font-bold" onclick="openCustModal(${cust.id})">EDIT</button>
+                        <button class="bg-white text-blue-600 px-6 py-2 rounded-xl text-xs font-bold" onclick="window.print()">PRINT</button>
+                    </div>
+                </div>
+                <div class="px-4 pb-32">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="opacity-40 uppercase font-bold border-b"><tr><th class="py-3">Date</th><th class="text-center">Gave</th><th class="text-center">Got</th><th class="text-right">Bal</th></tr></thead>
+                        <tbody>
+                            ${raw.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(t => `<tr class="border-b border-gray-500/10" onclick="openTransModal('${t.type}', ${t.id})"><td class="py-4"><b>${t.date}</b><br><span class="opacity-50 text-[10px]">${t.remark || ''}</span></td><td class="text-center text-red-500 font-bold">${t.type==='GAVE'?'₹'+t.amt:'-'}</td><td class="text-center text-green-500 font-bold">${t.type==='GOT'?'₹'+t.amt:'-'}</td><td class="text-right font-black opacity-80">₹${t.amt}</td></tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            document.getElementById('footerActions').innerHTML = `<div class="fixed bottom-6 w-full max-w-[480px] px-6 flex gap-3"><button class="flex-1 bg-red-500 py-4 rounded-2xl font-black text-white" onclick="openTransModal('GAVE')">GAVE ₹</button><button class="flex-1 bg-green-600 py-4 rounded-2xl font-black text-white" onclick="openTransModal('GOT')">GOT ₹</button></div>`;
+        }
+
+        // Modals
+        function openModal(html) { document.getElementById('modalBox').innerHTML = html; document.getElementById('modalOverlay').style.display = 'flex'; setTimeout(()=>document.getElementById('modalBox').classList.add('active'), 10); }
+        function closeModal() { document.getElementById('modalBox').classList.remove('active'); setTimeout(()=>document.getElementById('modalOverlay').style.display='none', 300); }
+
+        function openAdmin() {
+            openModal(`
+                <h3 class="font-black mb-6 uppercase">Admin Panel</h3>
+                <label class="text-[10px] opacity-50 font-bold">Shop Name</label>
+                <input type="text" id="sName" class="input-field" value="${db.shopName}">
+                <button class="w-full bg-blue-600 py-4 rounded-xl font-bold mb-4" onclick="db.shopName=document.getElementById('sName').value; saveDB(); closeModal();">SAVE NAME</button>
+                <div class="grid grid-cols-2 gap-3">
+                    <button class="bg-emerald-600 p-4 rounded-xl text-xs font-bold" onclick="exportJSON()">BACKUP</button>
+                    <button class="bg-red-600 p-4 rounded-xl text-xs font-bold" onclick="db.pin=null;saveDB();location.reload();">RESET PIN</button>
+                </div>
+            `);
+        }
+
+        function openCustModal(id=null) {
+            const c = id ? db.customers.find(x=>x.id===id) : {name:'', phone:''};
+            openModal(`
+                <h3 class="font-black mb-6 uppercase">Customer Details</h3>
+                <input type="text" id="cName" class="input-field" placeholder="Customer Name" value="${c.name}">
+                <input type="number" id="cPhone" class="input-field" placeholder="WhatsApp (Optional)" value="${c.phone}">
+                <button class="w-full bg-blue-600 py-4 rounded-xl font-bold" onclick="saveCust(${id})">SAVE CUSTOMER</button>
+                ${id ? `<button class="w-full mt-4 text-red-500 text-xs" onclick="deleteCust(${id})">DELETE CUSTOMER</button>` : ''}
+            `);
+        }
+        function saveCust(id) {
+            const name = document.getElementById('cName').value; if(!name) return;
+            if(id) { let x=db.customers.find(y=>y.id===id); x.name=name; x.phone=document.getElementById('cPhone').value; }
+            else { db.customers.push({id:Date.now(), name, phone:document.getElementById('cPhone').value}); }
+            saveDB(); closeModal();
+        }
+        function deleteCust(id) { if(confirm("Delete?")) { db.customers=db.customers.filter(x=>x.id!==id); db.trans=db.trans.filter(x=>x.cid!==id); saveDB(); closeModal(); goHome(); } }
+
+        function openTransModal(type, editId=null) {
+            const t = editId ? db.trans.find(x=>x.id===editId) : {amt:'', remark:'', date:new Date().toISOString().split('T')[0]};
+            openModal(`
+                <h3 class="font-black mb-6 uppercase text-center">${type}</h3>
+                <input type="number" id="tAmt" class="input-field text-3xl text-center font-bold" value="${t.amt}" placeholder="₹0">
+                <input type="text" id="tRem" class="input-field" value="${t.remark}" placeholder="Notes">
+                <input type="date" id="tDate" class="input-field" value="${t.date}">
+                <button class="w-full bg-blue-600 py-4 rounded-xl font-bold" onclick="saveTrans('${type}', ${editId})">SAVE ENTRY</button>
+                ${editId ? `<button class="w-full mt-4 text-red-500 text-xs" onclick="deleteTrans(${editId})">DELETE ENTRY</button>` : ''}
+            `);
+        }
+        function saveTrans(type, id) {
+            const amt = parseFloat(document.getElementById('tAmt').value); if(!amt) return;
+            if(id) { let x=db.trans.find(y=>y.id===id); x.amt=amt; x.date=document.getElementById('tDate').value; x.remark=document.getElementById('tRem').value; }
+            else { db.trans.push({id:Date.now(), cid:activeCid, type, amt, date:document.getElementById('tDate').value, remark:document.getElementById('tRem').value}); }
+            saveDB(); closeModal();
+        }
+        function deleteTrans(id) { if(confirm("Delete?")) { db.trans=db.trans.filter(x=>x.id!==id); saveDB(); closeModal(); } }
+
+        function exportJSON() { const b = new Blob([JSON.stringify(db)], {type:'application/json'}); const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='Khata_Backup.json'; a.click(); }
+
+        window.onload = checkAccess;
+    </script>
+</body>
+</html>
