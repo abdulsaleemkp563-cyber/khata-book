@@ -1,1 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KHATA ULTIMATE | Mobile Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        body.dark-mode { background: #0b0f1a; color: #f8fafc; }
+        body.light-mode { background: #f1f5f9; color: #0f172a; }
 
+        .app { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100vh; display: none; flex-direction: column; position: relative; }
+        
+        #lockScreen, #accessDenied { position: fixed; inset: 0; background: #0b0f1a; z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        
+        /* Dashboard Styling */
+        .dashboard-card { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 30px 20px; border-radius: 0 0 35px 35px; text-align: center; color: white; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2); }
+        
+        /* Responsive Customer Card */
+        .cust-card { display: flex; align-items: center; padding: 16px; border-radius: 20px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
+        .dark-mode .cust-card { background: #1e293b; border: 1px solid rgba(255,255,255,0.05); }
+        .light-mode .cust-card { background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+
+        /* Bottom Action Bar */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 500px; padding: 20px; z-index: 50; }
+
+        /* Modal Enhancements */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: flex-end; z-index: 1000; backdrop-filter: blur(5px); }
+        .modal { width: 100%; max-width: 500px; padding: 30px; border-radius: 35px 35px 0 0; background: #1e293b; color: white; transform: translateY(100%); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .modal.active { transform: translateY(0); }
+        .light-mode .modal { background: white; color: black; }
+
+        /* FULL PRINT OPTIMIZATION */
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; padding: 0 !important; }
+            .app { display: block !important; max-width: 100% !important; }
+            .print-area { display: block !important; width: 100% !important; padding: 10px !important; }
+            table { width: 100% !important; border: 1px solid #000 !important; border-collapse: collapse !important; }
+            th, td { border: 1px solid #000 !important; padding: 12px !important; font-size: 16px !important; text-align: center !important; }
+            .print-header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+            .print-header h1 { font-size: 28px; margin-bottom: 5px; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+
+    <div id="accessDenied"><i class="fa-solid fa-user-lock text-6xl text-red-500 mb-6"></i><h1 class="text-2xl font-bold">Access Revoked</h1><p class="opacity-60 px-10 mt-2">അഡ്മിൻ ലിങ്ക് വഴി മാത്രം പ്രവേശിക്കുക.</p></div>
+    <div id="lockScreen"><h2 class="text-xl font-bold mb-10 tracking-widest text-blue-500 uppercase">Secure Khata</h2><div class="flex mb-10"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div><div class="grid grid-cols-3 gap-6"><div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-2xl font-bold" onclick="pressKey('1')">1</div><div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-2xl font-bold" onclick="pressKey('2')">2</div><div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-2xl font-bold" onclick="pressKey('3')">3</div><div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-2xl font-bold" onclick="pressKey('4')">4</div><div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-2xl font-bold" onclick="pressKey('5')">5</div><div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-2xl font-bold" onclick="pressKey('6')">6</div><div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-2xl font-bold" onclick="pressKey('7')">7</div><div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-2xl font-bold" onclick="pressKey('8')">8</div><div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-2xl font-bold" onclick="pressKey('9')">9</div><div class="w-16 h-16 flex items-center justify-center text-sm opacity-50" onclick="clearPin()">CLR</div><div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-2xl font-bold" onclick="pressKey('0')">0</div><div class="w-16 h-16 flex items-center justify-center opacity-50" onclick="exportJSON()"><i class="fa-solid fa-download"></i></div></div></div>
+
+    <div class="app" id="mainApp">
+        <header class="p-5 flex justify-between items-center no-print">
+            <div class="flex items-center gap-3"><button id="backBtn" onclick="goHome()" class="hidden text-xl"><i class="fa-solid fa-arrow-left"></i></button><h1 id="pageTitle" class="text-xl font-extrabold uppercase tracking-tight">KHATA</h1></div>
+            <div class="flex gap-4 items-center">
+                <button onclick="toggleTheme()"><i id="themeIcon" class="fa-solid fa-moon text-lg"></i></button>
+                <button onclick="openAdmin()"><i class="fa-solid fa-gear text-lg text-blue-500"></i></button>
+            </div>
+        </header>
+
+        <main id="mainContent" class="flex-1 overflow-y-auto px-4"></main>
+
+        <div id="bottomNav" class="bottom-nav no-print"></div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal()"><div class="modal" id="modalBox" onclick="event.stopPropagation()"></div></div>
+
+    <script>
+        const DB_KEY = 'KHATA_ULTIMATE_MOBILE_V3';
+        let db = JSON.parse(localStorage.getItem(DB_KEY)) || { customers: [], trans: [], darkMode: true, pin: null, shopName: "KERALA STORE", links: [] };
+        let activeCid = null, pinInput = "";
+
+        function checkAccess() {
+            const id = new URLSearchParams(window.location.search).get('id');
+            if (!id) { document.getElementById('accessDenied').style.display = 'flex'; return; }
+            document.getElementById('lockScreen').style.display = 'flex';
+            applyTheme();
+        }
+
+        function pressKey(n) { if (pinInput.length < 4) { pinInput += n; updateDots(); if (pinInput.length === 4) setTimeout(validate, 200); } }
+        function updateDots() { document.querySelectorAll('.pin-dot').forEach((d, i) => d.classList.toggle('filled', i < pinInput.length)); }
+        function clearPin() { pinInput = ""; updateDots(); }
+        function validate() { if (!db.pin) { db.pin = pinInput; save(); unlock(); } else if (pinInput === db.pin) unlock(); else { alert("Wrong PIN!"); clearPin(); } }
+        function unlock() { document.getElementById('lockScreen').style.display = 'none'; document.getElementById('mainApp').style.display = 'flex'; render(); }
+
+        function applyTheme() { document.body.className = db.darkMode ? 'dark-mode' : 'light-mode'; document.getElementById('themeIcon').className = db.darkMode ? 'fa-solid fa-sun' : 'fa-solid fa-moon'; }
+        function toggleTheme() { db.darkMode = !db.darkMode; applyTheme(); save(); }
+        function save() { localStorage.setItem(DB_KEY, JSON.stringify(db)); render(); }
+
+        function render() { activeCid ? renderDetails() : renderHome(); }
+
+        function renderHome() {
+            activeCid = null; document.getElementById('backBtn').classList.add('hidden'); document.getElementById('pageTitle').innerText = db.shopName;
+            let gave = 0, got = 0; db.trans.forEach(t => { if(t.type === 'GAVE') gave += t.amt; else got += t.amt; });
+            document.getElementById('mainContent').innerHTML = `
+                <div class="dashboard-card mb-6"><p class="text-[10px] opacity-70 font-bold uppercase mb-2">Total Net Balance</p><h2 class="text-5xl font-black">₹${(gave - got).toLocaleString()}</h2><div class="flex justify-between mt-6 bg-black/10 p-4 rounded-2xl"><div><p class="text-[9px] opacity-60">GAVE</p><p class="font-bold text-red-300">₹${gave}</p></div><div class="w-[1px] bg-white/10"></div><div><p class="text-[9px] opacity-60">GOT</p><p class="font-bold text-green-300">₹${got}</p></div></div></div>
+                <div class="mb-4 no-print"><input type="text" class="w-full p-4 rounded-2xl bg-gray-500/10 border-none outline-none" placeholder="🔍 Search Customer..." oninput="renderCustList(this.value)"></div>
+                <div id="custList" class="pb-32"></div>`;
+            document.getElementById('bottomNav').innerHTML = `<button class="w-full bg-blue-600 py-4 rounded-2xl font-black text-white shadow-lg" onclick="openCustModal()"><i class="fa-solid fa-plus mr-2"></i> ADD CUSTOMER</button>`;
+            renderCustList();
+        }
+
+        function renderCustList(q = "") {
+            let filtered = db.customers.filter(c => c.name.toLowerCase().includes(q.toLowerCase()));
+            document.getElementById('custList').innerHTML = filtered.map(c => {
+                let bal = 0; db.trans.filter(t => t.cid === c.id).forEach(t => bal += (t.type === 'GAVE' ? t.amt : -t.amt));
+                return `<div class="cust-card" onclick="view(${c.id})"><div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white mr-4">${c.name[0]}</div><div class="flex-1 font-bold">${c.name}</div><div class="text-right font-black ${bal >= 0 ? 'text-red-500' : 'text-green-500'}">₹${Math.abs(bal)}</div></div>`;
+            }).join('');
+        }
+
+        function view(id) { activeCid = id; render(); }
+        function goHome() { activeCid = null; render(); }
+
+        function renderDetails() {
+            const cust = db.customers.find(c => c.id === activeCid);
+            document.getElementById('backBtn').classList.remove('hidden'); document.getElementById('pageTitle').innerText = cust.name;
+            let raw = db.trans.filter(t => t.cid === activeCid), bal = 0; raw.forEach(t => bal += (t.type === 'GAVE' ? t.amt : -t.amt));
+            
+            document.getElementById('mainContent').innerHTML = `
+                <div class="print-header hidden"><h1>${db.shopName}</h1><p>Customer: ${cust.name}</p><p>Final Balance: ₹${Math.abs(bal)}</p></div>
+                <div class="dashboard-card no-print mb-6"><h2 class="text-4xl font-black">₹${Math.abs(bal)}</h2><p class="text-[10px] opacity-70 uppercase mt-2">${bal >= 0 ? 'You will give' : 'You will get'}</p><div class="flex justify-center gap-3 mt-6"><button class="bg-white/10 px-6 py-2 rounded-xl text-[10px] font-bold" onclick="openCustModal(${cust.id})">EDIT</button><button class="bg-white text-blue-700 px-6 py-2 rounded-xl text-[10px] font-bold" onclick="window.print()">PRINT PDF</button></div></div>
+                <div class="print-area"><table class="w-full text-left text-[13px]"><thead><tr class="opacity-40 border-b"><th>Date</th><th>Gave</th><th>Got</th><th>Bal</th></tr></thead>
+                <tbody>${raw.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(t => `<tr class="border-b border-gray-500/5"><td class="py-4"><b>${t.date}</b><br><small class="opacity-50">${t.remark || '-'}</small></td><td class="text-center text-red-500 font-bold">${t.type==='GAVE'?'₹'+t.amt:'-'}</td><td class="text-center text-green-500 font-bold">${t.type==='GOT'?'₹'+t.amt:'-'}</td><td class="text-right font-black" onclick="openTransModal('${t.type}', ${t.id})">₹${t.amt}</td></tr>`).join('')}</tbody></table></div><div class="h-40"></div>`;
+            
+            document.getElementById('bottomNav').innerHTML = `<div class="flex gap-4"><button class="flex-1 bg-red-500 py-4 rounded-2xl font-black text-white shadow-lg" onclick="openTransModal('GAVE')">GAVE ₹</button><button class="flex-1 bg-green-600 py-4 rounded-2xl font-black text-white shadow-lg" onclick="openTransModal('GOT')">GOT ₹</button></div>`;
+        }
+
+        // Standard Utility Functions
+        function openModal(h) { document.getElementById('modalBox').innerHTML = h; document.getElementById('modalOverlay').style.display = 'flex'; setTimeout(()=>document.getElementById('modalBox').classList.add('active'), 10); }
+        function closeModal() { document.getElementById('modalBox').classList.remove('active'); setTimeout(()=>document.getElementById('modalOverlay').style.display='none', 300); }
+        
+        function openCustModal(id=null) {
+            const c = id ? db.customers.find(x=>x.id===id) : {name:'', phone:''};
+            openModal(`<h3 class="font-black mb-6 uppercase">Customer Details</h3><input type="text" id="cName" class="w-full p-4 rounded-xl bg-gray-500/10 mb-4 outline-none" placeholder="Customer Name" value="${c.name}"><input type="number" id="cPhone" class="w-full p-4 rounded-xl bg-gray-500/10 mb-6 outline-none" placeholder="WhatsApp Number" value="${c.phone}"><button class="w-full bg-blue-600 py-4 rounded-xl font-black text-white" onclick="saveCust(${id})">SAVE CUSTOMER</button>${id ? `<button class="w-full mt-4 text-red-500 text-xs font-bold" onclick="deleteCust(${id})">DELETE CUSTOMER</button>` : ''}`);
+        }
+        function saveCust(id) { let n = document.getElementById('cName').value; if(!n) return; if(id) { let x=db.customers.find(y=>y.id===id); x.name=n; x.phone=document.getElementById('cPhone').value; } else { db.customers.push({id:Date.now(), name:n, phone:document.getElementById('cPhone').value}); } save(); closeModal(); }
+        function deleteCust(id) { if(confirm("Delete?")) { db.customers=db.customers.filter(x=>x.id!==id); db.trans=db.trans.filter(x=>x.cid!==id); save(); closeModal(); goHome(); } }
+
+        function openTransModal(type, editId=null) {
+            const t = editId ? db.trans.find(x=>x.id===editId) : {amt:'', remark:'', date:new Date().toISOString().split('T')[0]};
+            openModal(`<h3 class="font-black mb-6 uppercase">${type} Entry</h3><input type="number" id="tAmt" class="w-full p-4 rounded-xl bg-gray-500/10 mb-4 text-2xl font-black text-center" value="${t.amt}" placeholder="₹ 0"><input type="text" id="tRem" class="w-full p-4 rounded-xl bg-gray-500/10 mb-4 outline-none" value="${t.remark}" placeholder="Notes"><input type="date" id="tDate" class="w-full p-4 rounded-xl bg-gray-500/10 mb-6 outline-none" value="${t.date}"><button class="w-full bg-blue-600 py-4 rounded-xl font-black text-white" onclick="saveTrans('${type}', ${editId})">SAVE TRANSACTION</button>${editId ? `<button class="w-full mt-4 text-red-500 text-xs font-bold" onclick="deleteTrans(${editId})">DELETE ENTRY</button>` : ''}`);
+        }
+        function saveTrans(type, id) {
+            let a = parseFloat(document.getElementById('tAmt').value); if(!a) return;
+            if(id) { let x=db.trans.find(y=>y.id===id); x.amt=a; x.date=document.getElementById('tDate').value; x.remark=document.getElementById('tRem').value; }
+            else { db.trans.push({id:Date.now(), cid:activeCid, type, amt:a, date:document.getElementById('tDate').value, remark:document.getElementById('tRem').value}); }
+            save(); closeModal();
+            const cust = db.customers.find(c => c.id === activeCid);
+            if(cust.phone && confirm("WhatsApp message അയക്കണോ?")) {
+                let bal = 0; db.trans.filter(t => t.cid === activeCid).forEach(t => bal += (t.type === 'GAVE' ? t.amt : -t.amt));
+                const msg = `🧾 *Update from ${db.shopName}*%0A---------------------------%0A*Amount:* ₹${a}%0A*Type:* ${type}%0A*Final Balance:* ₹${Math.abs(bal)}%0A---------------------------`;
+                window.open(`https://wa.me/91${cust.phone}?text=${msg}`, '_blank');
+            }
+        }
+        function deleteTrans(id) { if(confirm("Delete Entry?")) { db.trans=db.trans.filter(x=>x.id!==id); save(); closeModal(); } }
+
+        function openAdmin() {
+            let linksHtml = (db.links || []).map(l => `<div class="flex justify-between p-3 bg-blue-500/10 rounded-xl mb-2 text-xs"><span>${l.name}</span><button onclick="copyLink('${l.url}')" class="text-blue-500 font-bold">COPY</button></div>`).join('');
+            openModal(`<h3 class="font-black mb-6">SETTINGS</h3><input type="text" id="sName" class="w-full p-4 rounded-xl bg-gray-500/10 mb-4" value="${db.shopName}" placeholder="Shop Name"><button class="w-full bg-blue-600 py-3 rounded-xl font-bold mb-6" onclick="db.shopName=document.getElementById('sName').value; save(); closeModal();">SAVE NAME</button><div class="flex gap-2 mb-4"><input type="text" id="newUid" class="flex-1 p-3 rounded-xl bg-gray-500/10 text-xs" placeholder="Staff Name"><button class="bg-blue-600 px-4 rounded-xl font-bold text-xs" onclick="genLink()">GENERATE LINK</button></div><div class="max-h-32 overflow-y-auto mb-6">${linksHtml}</div><div class="grid grid-cols-2 gap-3"><button class="bg-emerald-600 p-3 rounded-xl text-[10px] font-bold" onclick="exportJSON()">BACKUP</button><button class="bg-red-600 p-3 rounded-xl text-[10px] font-bold" onclick="db.pin=null;save();location.reload();">RESET PIN</button></div>`);
+        }
+        function genLink() { let n = document.getElementById('newUid').value.trim(); if(!n) return; let url = window.location.href.split('?')[0] + '?id=' + n.toLowerCase(); db.links.push({name:n, url}); save(); openAdmin(); }
+        function copyLink(u) { navigator.clipboard.writeText(u).then(()=>alert("Copied!")); }
+        function exportJSON() { const b = new Blob([JSON.stringify(db)], {type:'application/json'}); const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='Khata_Backup.json'; a.click(); }
+
+        window.onload = checkAccess;
+    </script>
+</body>
+</html>
